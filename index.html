@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UBot | YouTube AI Assistant</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        /* Toggle sidebar button - completely simplified */
+        .toggle-sidebar-btn {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex; /* Always flex, we'll control visibility with opacity and pointer-events */
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: var(--shadow);
+            opacity: 1;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        /* Right-aligned in RTL mode */
+        [dir="rtl"] .toggle-sidebar-btn {
+            left: auto;
+            right: 20px;
+        }
+
+        /* Hide toggle button on desktop when sidebar is open */
+        @media (min-width: 769px) {
+            body.sidebar-open .toggle-sidebar-btn {
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
+
+        /* Ensure sidebar is properly hidden when closed */
+        body.sidebar-closed .chat-history-sidebar {
+            transform: translateX(-100%) !important;
+        }
+
+        [dir="rtl"] body.sidebar-closed .chat-history-sidebar {
+            transform: translateX(100%) !important;
+        }
+
+        /* Fix container margins */
+        body.sidebar-closed .container {
+            margin-left: 20px;
+            width: calc(100% - 40px);
+        }
+
+        [dir="rtl"] body.sidebar-closed .container {
+            margin-right: 20px;
+            margin-left: 20px;
+        }
+
+        /* Fix collapse button */
+        .collapse-sidebar-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .collapse-sidebar-btn i {
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        [dir="rtl"] .collapse-sidebar-btn {
+            right: auto;
+            left: 15px;
+        }
+
+        .collapse-sidebar-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="sidebar-open">
+    <!-- Toggle Sidebar Button (always visible) -->
+    <div class="toggle-sidebar-btn">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- Chat History Sidebar -->
+    <div class="chat-history-sidebar">
+        <div class="sidebar-header">
+            <h3>
+                <i class="fas fa-comments"></i>
+                <span id="chat-history-title-en">Chat History</span>
+                <span id="chat-history-title-ar" style="display:none;">سجل المحادثات</span>
+            </h3>
+            <!-- Collapse button will be added by JS -->
+        </div>
+        <div class="history-list" id="chat-history-list">
+            <!-- Chat history items will be added here -->
+        </div>
+        <div class="new-chat-button">
+            <button id="new-chat-btn">
+                <i class="fas fa-plus"></i>
+                <span id="new-chat-btn-text-en">New Chat</span>
+                <span id="new-chat-btn-text-ar" style="display:none;">محادثة جديدة</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Menu System - Updated with distinctive icons -->
+    <div class="menu-container">
+        <div class="menu-toggle">
+            <i class="fas fa-ellipsis-v"></i>
+        </div>
+        <div class="menu-dropdown">
+            <div class="menu-item" id="download-chat">
+                <i class="fas fa-download"></i>
+                <span id="download-text-en">Download Chat</span>
+                <span id="download-text-ar" style="display:none;">تنزيل المحادثة</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-item" id="about">
+                <i class="fas fa-info-circle"></i>
+                <span id="about-text-en">About</span>
+                <span id="about-text-ar" style="display:none;">حول</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 class="logo">
+            <span class="logo-icon">🤖</span> 
+            UBot <span style="font-size: 18px; opacity: 0.8;">YouTube AI Assistant</span>
+        </h1>
+
+        <div class="language-selector">
+            <div class="language-option active" data-lang="en">
+                <i class="fas fa-language"></i> <span>English</span>
+            </div>
+            <div class="language-option" data-lang="ar">
+                <i class="fas fa-language"></i> <span>العربية</span>
+            </div>
+        </div>
+
+        <div class="url-input">
+            <input type="text" id="youtubeUrl" placeholder="Enter YouTube Video URL...">
+            <button id="processButton">
+                <i class="fas fa-robot"></i> <span>Transcribe Video</span>
+            </button>
+        </div>
+
+        <div id="progress-bar" class="progress-container" style="display:none;">
+            <div id="progress" class="progress-bar"></div>
+            <p id="progress-text" class="progress-text">Processing...</p>
+        </div>
+
+        <div id="video-info-container" class="video-info-container" style="display:none;">
+            <h3 id="info-title"><i class="fas fa-info-circle"></i> Video Information</h3>
+            <div class="video-details">
+                <div class="thumbnail-container">
+                    <img id="video-thumbnail" src="" alt="Video thumbnail">
+                </div>
+                <div class="video-meta">
+                    <h4 id="video-title">Video Title</h4>
+                    <p id="video-channel"><i class="fas fa-user-circle"></i> Channel: <span>Unknown</span></p>
+                    <div id="keywords-title"><i class="fas fa-tags"></i> Keywords:</div>
+                    <div id="video-keywords" class="keywords-container">
+                        <!-- Keywords will be added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="chatbox" class="chatbox">
+            <!-- Chat messages will appear here -->
+            <div class="message bot-message">
+                <i class="fas fa-robot"></i>
+                <span id="welcome-text-en">Hello! I'm UBot, your YouTube AI Assistant. Enter a YouTube URL to get started. You can ask me questions about the video content after processing.</span>
+                <span id="welcome-text-ar" style="display:none;">مرحبًا! أنا UBot، مساعدك الذكي ليوتيوب. أدخل رابط يوتيوب للبدء. يمكنك أن تسألني أسئلة حول محتوى الفيديو بعد المعالجة.</span>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="questionInput" placeholder="Ask a question about the video...">
+            <button id="askButton">
+                <i class="fas fa-paper-plane"></i> <span>Ask</span>
+            </button>
+        </div>
+
+        <div id="video-history" class="video-history" style="display:none;">
+            <h3 id="history-title"><i class="fas fa-history"></i> Video History</h3>
+            <div id="video-list" class="video-list">
+                <!-- Video history will appear here -->
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>
+                <span id="footer-text-en">UBot - Powered by AI | Built with LangSmith & OpenAI<br>Developed by <a href="https://github.com/bader-albehishi" target="_blank" style="color: var(--primary);">Bader Albehishi</a></span>
+                <span id="footer-text-ar" style="display:none;">UBot - مدعوم بالذكاء الاصطناعي | مبني باستخدام LangSmith و OpenAI<br>تم التطوير بواسطة <a href="https://github.com/bader-albehishi" target="_blank" style="color: var(--primary);">بدر البهيشي</a></span>
+            </p>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        // Add this code at the end to fix sidebar functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize sidebar
+            initializeSidebar();
+        });
+
+        // Function to initialize sidebar
+        function initializeSidebar() {
+            // Get sidebar elements
+            const sidebar = document.querySelector('.chat-history-sidebar');
+            const toggleBtn = document.querySelector('.toggle-sidebar-btn');
+            
+            if (!sidebar || !toggleBtn) return;
+            
+            // Toggle button click event - opens the sidebar
+            toggleBtn.addEventListener('click', function() {
+                // Remove inline styles first
+                sidebar.style.transform = '';
+                
+                // Update classes
+                document.body.classList.remove('sidebar-closed');
+                document.body.classList.add('sidebar-open');
+            });
+            
+            // Create and add collapse button
+            createCollapseButton();
+        }
+
+        // Function to create collapse button with the correct icon
+        function createCollapseButton() {
+            const sidebarHeader = document.querySelector('.sidebar-header');
+            if (!sidebarHeader) return;
+            
+            // Remove any existing button first
+            const existingBtn = sidebarHeader.querySelector('.collapse-sidebar-btn');
+            if (existingBtn) {
+                existingBtn.remove();
+            }
+            
+            // Create new button
+            const collapseBtn = document.createElement('button');
+            collapseBtn.className = 'collapse-sidebar-btn';
+            collapseBtn.title = currentLanguage === 'ar' ? "إخفاء" : "Collapse";
+            
+            // Create icon element
+            const icon = document.createElement('i');
+            icon.className = currentLanguage === 'ar' ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+            collapseBtn.appendChild(icon);
+            
+            // Add to header
+            sidebarHeader.appendChild(collapseBtn);
+            
+            // Add event listener
+            collapseBtn.addEventListener('click', function() {
+                // Update classes
+                document.body.classList.add('sidebar-closed');
+                document.body.classList.remove('sidebar-open');
+                
+                // Manually set transform for immediate effect
+                const sidebar = document.querySelector('.chat-history-sidebar');
+                if (sidebar) {
+                    if (currentLanguage === 'ar') {
+                        sidebar.style.transform = 'translateX(100%)';
+                    } else {
+                        sidebar.style.transform = 'translateX(-100%)';
+                    }
+                }
+            });
+        }
+
+        // Add this to your setLanguage function - important to call this
+        function updateSidebarAfterLanguageChange() {
+            createCollapseButton();
+        }
+
+        // Call this function after language change
+        // Make sure to add this call to your existing setLanguage function
+        const originalSetLanguage = window.setLanguage;
+        window.setLanguage = function(lang) {
+            // Call original function first
+            if (typeof originalSetLanguage === 'function') {
+                originalSetLanguage(lang);
+            }
+            
+            // Update sidebar elements after language change
+            updateSidebarAfterLanguageChange();
+        };
+    </script>
+</body>
+</html>
