@@ -1,4 +1,14 @@
 # UBot - YouTube AI Assistant
+![f1](https://github.com/user-attachments/assets/b113f3f1-66b1-427c-b3b1-4b06cad444b0)
+
+
+![f2](https://github.com/user-attachments/assets/b1fe1665-9acc-4053-bc51-53132eb760ba)
+
+![f3](https://github.com/user-attachments/assets/3c15a6cc-a47a-45ab-8cb0-bb702fe4f170)
+
+![f6](https://github.com/user-attachments/assets/e8397bb0-56cd-4379-adfc-54162f70cc07)
+
+
 
 UBot is an advanced YouTube AI Assistant that helps users understand video content through transcription, Q&A, and summarization. The application downloads audio from YouTube videos, transcribes it, and enables natural language conversations about the video content.
 
@@ -39,7 +49,6 @@ UBot is built with a FastAPI backend and a modern, responsive web frontend:
 
 - Python 3.8+
 - FFmpeg (for audio processing)
-- Node.js and npm (for frontend development, optional)
 - OpenAI API key
 
 ### Setup Instructions
@@ -205,7 +214,6 @@ UBot exposes the following API endpoints:
 
 ## Future Improvements
 
-- Integration with LangChain for more advanced agent capabilities
 - Voice input support for asking questions
 - Embedded YouTube player with timestamp navigation
 - Mobile application version
@@ -218,10 +226,6 @@ UBot exposes the following API endpoints:
 - ChromaDB for vector storage
 - FastAPI for the web framework
 - yt-dlp for YouTube video processing
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Author
 
